@@ -15,7 +15,7 @@ public class RunClient {
 		client.iniciarClient(serverIP);
 
 		String jogada = "";
-		while (!jogada.equals("Sair")) {
+		while (!jogada.equalsIgnoreCase("Sair")) {
 			System.out.println("Faça sua jogada, visitante: 'Pedra', 'Papel', 'Tesoura' ('Sair' para encerrar o jogo)");
 			jogada = sc.nextLine();
 
@@ -23,6 +23,7 @@ public class RunClient {
 				System.out.println("Encerrando jogo...");
 				break;
 			}
+
 			try {
 				String resultado = client.jogarJokenpo(jogada);
 				System.out.println(resultado);

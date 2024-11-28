@@ -11,6 +11,8 @@ public class JokenpoClient {
 
 	private JokenpoServer server;
 
+	public JokenpoClient() {}
+	
 	// quando criamos/iniciamos o client, já estabelecemos a conexao com o server
 	public void iniciarClient(String serverIP) throws RemoteException, NotBoundException {
 		Registry registry = LocateRegistry.getRegistry(serverIP, 1099); // serverIP deverá ser digitado
@@ -19,9 +21,6 @@ public class JokenpoClient {
 
 	public String jogarJokenpo(String jogadaDoCliente) throws RemoteException {
 		return server.jogarJokenpo(jogadaDoCliente);
-	}
-
-	public JokenpoClient() {
 	}
 
 }

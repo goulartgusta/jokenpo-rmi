@@ -11,7 +11,7 @@ public class RunServer {
 	public static void main(String[] args) throws RemoteException, AlreadyBoundException  {
 		JokenpoServer server = new ServerImpl();
 		Registry registry = LocateRegistry.createRegistry(1099);
-		registry.bind("JokenpoServer", server);// quando o usuário for conectar ele tem que procurar pelo ip do server
+		registry.bind("JokenpoServer", server); 
 		System.out.println("Server iniciado!");
 	}
 }

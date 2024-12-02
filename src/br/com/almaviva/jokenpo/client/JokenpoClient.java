@@ -1,26 +1,24 @@
 package br.com.almaviva.jokenpo.client;
 
-import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-
 import br.com.almaviva.jokenpo.shared.JokenpoServer;
 
+import java.rmi.RemoteException;
+import java.util.Scanner;
+
 public class JokenpoClient {
+	private final JokenpoServer servidor;
+	private final String nome;
 
-	private JokenpoServer server;
-
-	public JokenpoClient() {}
-	
-	// quando criamos/iniciamos o client, já estabelecemos a conexao com o server
-	public void iniciarClient(String serverIP) throws RemoteException, NotBoundException {
-		Registry registry = LocateRegistry.getRegistry(serverIP, 1099); // serverIP deverá ser digitado
-		server = (JokenpoServer) registry.lookup("JokenpoServer");
+	public JokenpoClient(JokenpoServer servidor, String nome) {
+		this.servidor = servidor;
+		this.nome = nome;
 	}
 
-	public String jogarJokenpo(String jogadaDoCliente) throws RemoteException {
-		return server.jogarJokenpo(jogadaDoCliente);
+    public String jogarJokenpo(int jogada) {
+        try {
+            return servidor.jogarJokenpo(nome, jogada);
+        } catch (RemoteException e) {
+            return "Erro ao conectar no servidor: " + e.getMessage();
+        }
 	}
-
 }

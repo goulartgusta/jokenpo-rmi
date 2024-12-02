@@ -4,5 +4,7 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface JokenpoServer extends Remote {
-	String jogarJokenpo(String jogadaDoCliente) throws RemoteException;
+    void registrarCliente(String nome) throws RemoteException;
+
+    String jogarJokenpo(String nome, int jogada) throws RemoteException;
 }

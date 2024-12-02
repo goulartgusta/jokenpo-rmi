@@ -1,48 +1,122 @@
 package br.com.almaviva.jokenpo.server;
 
-import java.rmi.RemoteException;
-import java.rmi.server.UnicastRemoteObject;
-import java.util.Scanner;
-
 import br.com.almaviva.jokenpo.shared.JokenpoServer;
 
-public class ServerImpl implements JokenpoServer {
-	private final Scanner sc; // Scanner inicializado apenas uma vez
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
+public class ServerImpl extends UnicastRemoteObject implements JokenpoServer {
+	private String jogador1;
+	private String jogador2;
+	private int jogadaJogador1;
+	private int jogadaJogador2; 
+	private int totalJogadores;
+	private String resultadoFinal; 
 
 	public ServerImpl() throws RemoteException {
-		UnicastRemoteObject.exportObject(this, 0); // Exportar this object para porta padrão '0'
-		this.sc = new Scanner(System.in); // Scanner precisa inicializar no construtor e não no método
+		super();
+		jogador1 = null;
+		jogador2 = null;
+		jogadaJogador1 = 0;
+		jogadaJogador2 = 0;
+		totalJogadores = 0;
+		resultadoFinal = null;
 	}
 
 	@Override
-	public String jogarJokenpo(String jogadaDoCliente) {
-		System.out
-				.println("Olá, anfitrião, como dono deste servidor, escolha sua jogada: 'Pedra', 'Papel', 'Tesoura' ");
-		String jogadaDoSegundoCliente = sc.nextLine();
-
-		String resultado = validaJogada(jogadaDoCliente, jogadaDoSegundoCliente);
-
-		return " O visitante jogou: " + jogadaDoCliente + "\n O anfitrião jogou: " + jogadaDoCliente + "\n Resultado: "
-				+ resultado;
-	}
-
-	public String validaJogada(String jogadaDoCliente, String jogadaDoSegundoCliente) {
-		if ((jogadaDoCliente.equalsIgnoreCase("Pedra") && jogadaDoSegundoCliente.equalsIgnoreCase("Tesoura"))
-				|| (jogadaDoCliente.equalsIgnoreCase("Papel") && jogadaDoSegundoCliente.equalsIgnoreCase("Pedra"))
-				|| (jogadaDoCliente.equalsIgnoreCase("Tesoura") && jogadaDoSegundoCliente.equalsIgnoreCase("Papel"))) {
-			return "O jogador visitante venceu!";
-
-		} else if ((jogadaDoSegundoCliente.equalsIgnoreCase("Pedra") && jogadaDoCliente.equalsIgnoreCase("Tesoura"))
-				|| (jogadaDoSegundoCliente.equalsIgnoreCase("Papel") && jogadaDoCliente.equalsIgnoreCase("Pedra"))
-				|| (jogadaDoSegundoCliente.equalsIgnoreCase("Tesoura") && jogadaDoCliente.equalsIgnoreCase("Papel"))) {
-			return "Como previsto... O anfitrião venceu!";
-
-		} else if (jogadaDoCliente.equalsIgnoreCase(jogadaDoSegundoCliente)) {
-			return "Deu empate!";
-
+	public synchronized void registrarCliente(String nome) throws RemoteException {
+		if (totalJogadores == 0) {
+			jogador1 = nome;
+			totalJogadores++;
+			System.out.println("Jogador 1 registrado: " + nome);
+		} else if (totalJogadores == 1) {
+			jogador2 = nome;
+			totalJogadores++;
+			System.out.println("Jogador 2 registrado: " + nome);
+			System.out.println("Dois jogadores conectados. O jogo pode começar!");
 		} else {
-			return "Jogada inválida, por favor, escolha as opções sugeridas...";
+			throw new RemoteException("O jogo já está cheio. Tente novamente mais tarde.");
 		}
 	}
 
+	@Override
+	public synchronized String jogarJokenpo(String nome, int jogada) throws RemoteException {
+
+		validarInicioDoJogo();
+
+		registrarJogada(nome, jogada);
+
+		if (ambosJogadoresJogaram()) {
+			return finalizarRodada();
+		}
+
+		return esperarOutroJogador();
+	}
+
+	private void validarInicioDoJogo() throws RemoteException {
+		if (totalJogadores < 2) {
+			throw new RemoteException("Aguardando o segundo jogador entrar.");
+		}
+	}
+
+	private void registrarJogada(String nome, int jogada) throws RemoteException {
+		if (nome.equals(jogador1)) {
+			if (jogadaJogador1 > 0) {
+				throw new RemoteException("Você já fez sua jogada nesta rodada.");
+			}
+			jogadaJogador1 = jogada;
+			System.out.println("Jogador 1 (" + jogador1 + ") jogou (" + jogadaJogador1 + ").");
+		} else if (nome.equals(jogador2)) {
+			if (jogadaJogador2 > 0) {
+				throw new RemoteException("Você já fez sua jogada nesta rodada.");
+			}
+			jogadaJogador2 = jogada;
+			System.out.println("Jogador 2 (" + jogador2 + ") jogou (" + jogadaJogador2 + ").");
+		} else {
+			throw new RemoteException("Jogador não encontrado.");
+		}
+	}
+
+	private boolean ambosJogadoresJogaram() {
+		return jogadaJogador1 > 0 && jogadaJogador2 > 0;
+	}
+
+	private String finalizarRodada() {
+		String resultado = validarJogadas(jogadaJogador1, jogadaJogador2);
+		resetarJogadas();
+		resultadoFinal = resultado;
+		notifyAll(); 
+		return resultado;
+	}
+
+	private String esperarOutroJogador() throws RemoteException {
+		try {
+			wait();
+			return resultadoFinal;
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new RemoteException("Erro ao esperar pela jogada do outro jogador.", e);
+		}
+	}
+
+	private String validarJogadas(int jogada1, int jogada2) {
+		if (jogada1 == jogada2)
+			return "Empate!";
+
+		if ((jogada1 == 1 && jogada2 == 3) || (jogada1 == 2 && jogada2 == 1) || (jogada1 == 3 && jogada2 == 2)) {
+			return jogador1 + "venceu!";
+
+		} else if ((jogada2 == 1 && jogada1 == 3) || (jogada2 == 2 && jogada1 == 1) || (jogada2 == 3 && jogada1 == 2)) {
+			return jogador2 + "venceu!";
+
+		} else {
+			return "Jogada inválida";
+		}
+	}
+
+	private void resetarJogadas() {
+		jogadaJogador1 = 0;
+		jogadaJogador2 = 0;
+		System.out.println("Jogadas resetadas para a próxima rodada.");
+	}
 }
